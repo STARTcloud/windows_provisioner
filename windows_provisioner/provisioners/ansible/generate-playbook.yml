@@ -1,6 +1,6 @@
 ---
 -
-  name: "Generating switchboard_provisioner Playbook Locally"
+  name: "Generating Playbook Locally"
   gather_facts: true
   hosts: all
   vars:
