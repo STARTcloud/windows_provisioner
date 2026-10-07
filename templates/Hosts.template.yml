@@ -1,0 +1,392 @@
+# provisioner_name: windows_provisioner
+# provisioner_version: 0.1.23 # x-release-please-version
+# Platform Hosts template — true Jinja2, rendered by the agents at machine create.
+# Context supplied by the platform: structured settings/networks/roles + manifest field answers.
+# Goal: renders a Hosts.yml that works on Bhyve and Virtualbox simultaneously.
+---
+hosts:
+  -
+    settings:
+      # Vagrant Debug
+      debug_build: {{ settings.debug_build | default(true) }}
+
+      # Identifiers
+      hostname: {{ settings.hostname }}
+      domain: {{ settings.domain }}
+      server_id: '{{ settings.server_id }}'
+
+      # Extra Actions
+      post_provision: {{ settings.post_provision | default(true) }} ## This calls extra things after Ansible completes, like syncing the new SSH key from the lockdown role, or the id_files or the support bundle
+
+      # Resources
+      vcpus: {{ settings.vcpus | int }}
+      memory: {{ settings.memory }}
+
+      # Console Access — consoleport only renders when the wizard sends one; absent = no VRDE console
+      {% if settings.consoleport %}
+      consoleport: {{ settings.consoleport }}
+      {% endif %}
+      consolehost: {{ settings.consolehost | default("0.0.0.0") }}
+      show_console: {{ settings.show_console | default(false) }}
+
+      # Box information
+      box: '{{ settings.box | default("STARTcloud/windows2022-server") }}'
+      box_url: '{{ settings.box_url | default("https://boxvault.startcloud.com") }}'
+      box_version: {{ settings.box_version | default("2025.5.7") }}
+      box_arch: {{ settings.box_arch | default("amd64") }}
+
+      # Provider Specific Settings — the VAGRANT_PROVIDER manifest answer wins;
+      # the platform's own provider setting is the fallback
+      provider_type: {{ VAGRANT_PROVIDER | default(settings.provider_type | default("virtualbox")) }}
+      os_type: '{{ settings.os_type | default("Windows10_64") }}'
+      firmware_type: {{ settings.firmware_type | default("UEFI") }}
+
+      # Setup Variables
+      setup_wait: {{ settings.setup_wait | default(420) }}
+
+      # Vagrant Configurations
+      vagrant_user: {{ settings.vagrant_user | default("Administrator") }}
+      vagrant_user_pass: '{{ settings.vagrant_user_pass | default("STARTcloud24@!") }}'
+      vagrant_user_private_key_path: {{ settings.vagrant_user_private_key_path | default("./id_rsa") }}
+      vagrant_ssh_insert_key: {{ settings.vagrant_ssh_insert_key | default(true) }}
+      vagrant_ssh_forward_agent: {{ settings.vagrant_ssh_forward_agent | default(true) }}
+      vagrant_ssh_keep_alive: {{ settings.vagrant_ssh_keep_alive | default(true) }}
+      vagrant_communicator: {{ settings.vagrant_communicator | default("ssh") }}
+
+    plugins:
+      install:
+        -
+          name: vagrant-scp-sync
+          version: latest
+#        -
+#          name: vagrant-zones
+#          version: latest
+      remove:
+        -
+          name: vagrant-scp
+
+    zones:
+      vmtype: production
+      brand: bhyve
+      on_demand_vnics: true
+      post_provision_boot: true
+      console_onboot: false
+      console: webvnc
+      debug: false
+      debug_boot: false
+      hostbridge: i440fx
+      acpi: on
+      autostart: true
+      # setup_method: one of 'zlogin', 'dhcp', 'qga'. zlogin drives the bhyve serial
+      # console via PTY+expect to log in and run setup commands. dhcp relies on the
+      # host-side dhcpd serving the etherstub. qga talks to qemu-guest-agent over a
+      # virtio-console UNIX socket (requires guest virtio-console + qemu-guest-agent
+      # and brand=bhyve).
+      setup_method: zlogin
+      # qga_slot: bhyve PCI slot reserved for the virtio-console qga channel. Only
+      # consulted when setup_method='qga'. Default is 9; bump if slot 9 conflicts
+      # with another device on this zone.
+      #qga_slot: 9
+      # qga_network_script: optional host-side script run via guest-exec instead of
+      # the built-in backend chain (netplan/NetworkManager/systemd-networkd/ifupdown
+      # on Linux; netsh on Windows; dladm on illumos; rc.conf on FreeBSD). The
+      # driver passes VAGRANT_QGA_VNIC/_MAC/_IP/_NETMASK/_GATEWAY/_DNS env vars per NIC.
+      #qga_network_script: ./scripts/qga-network.sh
+      diskif: virtio
+      netif: virtio-net-viona
+      booted_string: 'Web console:'
+      lcheck_string: ':~$'
+      alcheck_string: 'login:'
+      safe_restart: 'sudo shutdown -r'
+      safe_shutdown: 'sudo init 0 || true'
+      clean_shutdown_time: 200
+      snapshot_script: '/opt/vagrant/bin/Snapshooter.sh'
+      cpu_configuration: simple
+
+    networks:
+      {% for network in networks %}
+      -
+        type: {{ network.type | default("external") }}
+        address: {{ network.address }}
+        netmask: {{ network.netmask }}
+        gateway: {{ network.gateway }}
+        autoconf: {{ network.autoconf | default(false) }}
+        vlan: {{ network.vlan }}
+        dhcp4: {{ network.dhcp4 | default(true) }}
+        dhcp6: {{ network.dhcp6 | default(false) }}
+        is_control: {{ network.is_control | default(false) }}
+        route: {{ network.route | default("default") }}
+        provisional: {{ network.provisional | default(false) }}
+        bridge: "{{ network.bridge }}"
+        nic_type: {{ network.nic_type | default("virtio") }}
+        mac: {{ network.mac | default("auto") }}
+        {% if network.dns %}
+        dns:
+          {% for nameserver in network.dns %}
+          - nameserver: {{ nameserver }}
+          {% endfor %}
+        {% endif %}
+      {% endfor %}
+
+    disks:
+      {% if disks %}
+      {% if disks.boot %}
+      boot:
+        type: {{ disks.boot.type | default("template") }}
+        {% if disks.boot.path %}
+        path: {{ disks.boot.path }}
+        {% endif %}
+        {% if disks.boot.size %}
+        size: {{ disks.boot.size }}
+        {% endif %}
+        {% if disks.boot.sparse is defined %}
+        sparse: {{ disks.boot.sparse }}
+        {% endif %}
+        {% if disks.boot.volume_name %}
+        volume_name: {{ disks.boot.volume_name }}
+        {% endif %}
+        {% if disks.boot.clone_strategy %}
+        clone_strategy: {{ disks.boot.clone_strategy }}
+        {% endif %}
+        {% if disks.boot.pool %}
+        pool: {{ disks.boot.pool }}
+        {% endif %}
+        {% if disks.boot.dataset %}
+        dataset: {{ disks.boot.dataset }}
+        {% endif %}
+        {% if disks.boot.controller %}
+        controller: {{ disks.boot.controller }}
+        {% endif %}
+        {% if disks.boot.port is defined %}
+        port: {{ disks.boot.port }}
+        {% endif %}
+        {% if disks.boot.diskif %}
+        diskif: {{ disks.boot.diskif }}
+        {% endif %}
+        {% if disks.boot.mount %}
+        mount: {{ disks.boot.mount }}
+        {% endif %}
+        {% if disks.boot.filesystem %}
+        filesystem: {{ disks.boot.filesystem }}
+        {% endif %}
+        {% if disks.boot.force %}
+        force: true
+        {% endif %}
+      {% endif %}
+      {% if disks.additional_disks %}
+      additional_disks:
+        {% for disk in disks.additional_disks %}
+        -
+          {% if disk.type %}
+          type: {{ disk.type }}
+          {% endif %}
+          {% if disk.path %}
+          path: {{ disk.path }}
+          {% endif %}
+          {% if disk.size %}
+          size: {{ disk.size }}
+          {% endif %}
+          {% if disk.sparse is defined %}
+          sparse: {{ disk.sparse }}
+          {% endif %}
+          {% if disk.volume_name %}
+          volume_name: {{ disk.volume_name }}
+          {% endif %}
+          {% if disk.pool %}
+          pool: {{ disk.pool }}
+          {% endif %}
+          {% if disk.dataset %}
+          dataset: {{ disk.dataset }}
+          {% endif %}
+          {% if disk.controller %}
+          controller: {{ disk.controller }}
+          {% endif %}
+          {% if disk.port is defined %}
+          port: {{ disk.port }}
+          {% endif %}
+          {% if disk.diskif %}
+          diskif: {{ disk.diskif }}
+          {% endif %}
+          {% if disk.mount %}
+          mount: {{ disk.mount }}
+          {% endif %}
+          {% if disk.filesystem %}
+          filesystem: {{ disk.filesystem }}
+          {% endif %}
+          {% if disk.force %}
+          force: true
+          {% endif %}
+        {% endfor %}
+      {% endif %}
+      {% if disks.cdroms %}
+      cdroms:
+        {% for cdrom in disks.cdroms %}
+        -
+          {% if cdrom.iso %}
+          iso: {{ cdrom.iso }}
+          {% endif %}
+          {% if cdrom.path %}
+          path: {{ cdrom.path }}
+          {% endif %}
+          {% if cdrom.controller %}
+          controller: {{ cdrom.controller }}
+          {% endif %}
+          {% if cdrom.port is defined %}
+          port: {{ cdrom.port }}
+          {% endif %}
+        {% endfor %}
+      {% endif %}
+      {% if disks.controllers %}
+      controllers:
+        {% for controller in disks.controllers %}
+        -
+          {% if controller.name %}
+          name: {{ controller.name }}
+          {% endif %}
+          {% if controller.type %}
+          type: {{ controller.type }}
+          {% endif %}
+          {% if controller.ports %}
+          ports: {{ controller.ports }}
+          {% endif %}
+          {% if controller.bootable is defined %}
+          bootable: {{ controller.bootable }}
+          {% endif %}
+        {% endfor %}
+      {% endif %}
+      {% else %}
+      # Package default — rendered only when the wizard sends no disks.
+      # No size (the box image's own size governs) and no baked placement
+      # (absent pool/controller/port = the agent's own frozen defaults).
+      boot:
+        type: template
+        volume_name: boot
+        mount: /
+      {% endif %}
+
+    provisioning:
+      shell:
+        enabled: false
+        #scripts:
+        #  - provisioners/scripts/winrm.ps1
+
+      ansible:
+        enabled: true
+        playbooks:
+          - remote:
+              -
+                description: "This playbook configures the machine using the generated playbook: /vagrant/ansible/playbook.yml"
+                playbook: provisioners/ansible/playbook.yml
+                ansible_python_interpreter: /usr/bin/python3
+                compatibility_mode: 2.0
+                install_mode: pip
+                ssh_pipelining: true
+                verbose: false
+                callbacks: profile_tasks
+                run: once
+                remote_collections: false
+                collections:
+                  - startcloud.startcloud_roles
+                  - startcloud.hcl_roles
+
+    folders:
+      -
+        description: "Disables VBoxSF, do not enable"
+        map: .
+        to: /vagrant
+        type: virtualbox
+        disabled: true
+        automount: true
+
+      -
+        description: "Directory for Ansible Scripts"
+        map: ./provisioners/ansible/
+        to: /cygdrive/c/vagrant/ansible/
+        owner: Administrator
+        type: rsync
+        args:
+          - '--verbose'
+          - '--archive'
+          - '--delete'
+          - '-z'
+          - '--copy-links'
+
+    vars:
+      ## Applied by the lockdown role so the agent-provided password takes effect
+      lockdown_new_password: '{{ settings.vagrant_user_pass | default("STARTcloud24@!") }}'
+
+      ## Provisioner Debug
+      debug_all: {{ DEBUG_ALL | default(true) }}
+
+      ## SSL
+      selfsigned_enabled: {{ CERT_SELFSIGNED | default(true) }}
+      haproxy_ssl_redirect: true
+      letsencrypt_enabled: {{ LETSENCRYPT_ENABLED | default(false) }}
+      letsencrypt_staging_enabled: {{ LETSENCRYPT_STAGING_ENABLED | default(false) }}
+
+      ## Use Proxy for downloads and updates
+      use_proxy: {{ USE_PROXY | default(false) }}
+      {% if USE_PROXY %}
+      proxy_server: {{ PROXY_SERVER }}
+      proxy_port: {{ PROXY_PORT | default(3128) }}
+      {% else %}
+      proxy_server: 255.255.255.255
+      proxy_port: 3128
+      {% endif %}
+
+      ## Hosts entries for /etc/hosts
+      #etc_hosts_entries:
+      #  - hostname:
+      #    aliases:
+      #      -
+      #    ip:
+
+    roles:
+      # Foundation — always applied
+      - name: startcloud.startcloud_roles.setup
+      - name: startcloud.startcloud_roles.networking
+        tags: always
+      - name: startcloud.startcloud_roles.disks
+      - name: startcloud.startcloud_roles.hostname
+      - name: startcloud.startcloud_roles.dependencies
+      - name: startcloud.startcloud_roles.service_user
+      - name: startcloud.startcloud_roles.ssl
+      # Picked roles — every role stays listed so its vars/defaults load;
+      # run_tasks (from the role picker's enabled flags) controls whether its
+      # tasks actually run. when: only guards environment, never picking.
+      - name: startcloud.startcloud_roles.antivirus
+        vars:
+          run_tasks: {{ antivirus | default(false) }}
+      - name: startcloud.startcloud_roles.chocolatey
+        vars:
+          run_tasks: {{ chocolatey | default(false) }}
+      - name: startcloud.startcloud_roles.bginfo
+        vars:
+          run_tasks: {{ bginfo | default(false) }}
+      - name: startcloud.startcloud_roles.power_management
+        vars:
+          run_tasks: {{ power_management | default(false) }}
+      - name: startcloud.startcloud_roles.remote_access
+        vars:
+          run_tasks: {{ remote_access | default(false) }}
+      - name: startcloud.startcloud_roles.sysmon
+        vars:
+          run_tasks: {{ sysmon | default(false) }}
+      - name: startcloud.startcloud_roles.telegraf
+        vars:
+          run_tasks: {{ telegraf | default(false) }}
+      - name: startcloud.startcloud_roles.windows_explorer
+        vars:
+          run_tasks: {{ windows_explorer | default(false) }}
+      - name: startcloud.startcloud_roles.windows_privacy
+        vars:
+          run_tasks: {{ windows_privacy | default(false) }}
+      - name: startcloud.startcloud_roles.windows_ssh
+        vars:
+          run_tasks: {{ windows_ssh | default(false) }}
+      - name: startcloud.startcloud_roles.winlogbeat
+        vars:
+          run_tasks: {{ winlogbeat | default(false) }}
+      - name: startcloud.startcloud_roles.lockdown
+        vars:
+          run_tasks: {{ lockdown | default(true) }}

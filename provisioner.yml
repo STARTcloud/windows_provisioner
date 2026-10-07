@@ -1,0 +1,133 @@
+name: windows_provisioner
+version: 0.1.23
+label: Windows Provisioner
+description: >-
+  Provisions a Windows Server guest from a STARTcloud Windows box, prepared
+  with the startcloud_roles Windows roles
+author: STARTcloud
+icon: https://startcloud.com/brand-assets/startcloud.svg
+homepage: https://startcloud.com/
+metadata:
+  configuration:
+    groups:
+      - name: provider
+        label: Provider
+      - name: ssl
+        label: SSL
+      - name: proxy
+        label: Download Proxy
+        advanced: true
+      - name: debug
+        label: Debugging
+        advanced: true
+    fields:
+      - name: VAGRANT_PROVIDER
+        label: Vagrant Provider
+        tooltip: >-
+          Hypervisor provider the machine is created on — VirtualBox on
+          desktops, Bhyve/zones on illumos hosts
+        type: select
+        group: provider
+        default: virtualbox
+        options:
+          - label: VirtualBox
+            value: virtualbox
+          - label: Bhyve/Zones (illumos)
+            value: zones
+      - name: CERT_SELFSIGNED
+        label: Use Self-Signed Certificate
+        tooltip: Generate a self-signed certificate for this server's web services
+        type: checkbox
+        group: ssl
+        default: true
+      - name: LETSENCRYPT_ENABLED
+        label: Use Let's Encrypt
+        tooltip: >-
+          Request a certificate from Let's Encrypt instead of using a
+          self-signed one — requires a publicly resolvable hostname
+        type: checkbox
+        group: ssl
+        default: false
+      - name: LETSENCRYPT_STAGING_ENABLED
+        label: Use Let's Encrypt Staging Environment
+        tooltip: >-
+          Use the Let's Encrypt staging CA to avoid production rate limits while
+          testing
+        type: checkbox
+        group: ssl
+        default: false
+        show_if:
+          LETSENCRYPT_ENABLED: true
+      - name: USE_PROXY
+        label: Use HTTP Proxy for Downloads
+        tooltip: Route package downloads and updates through an HTTP proxy
+        type: checkbox
+        group: proxy
+        default: false
+      - name: PROXY_SERVER
+        label: Proxy Server
+        tooltip: Hostname or IP address of the HTTP proxy
+        type: text
+        group: proxy
+        required: true
+        show_if:
+          USE_PROXY: true
+      - name: PROXY_PORT
+        label: Proxy Port
+        tooltip: TCP port of the HTTP proxy
+        type: number
+        group: proxy
+        default: 3128
+        show_if:
+          USE_PROXY: true
+        validate:
+          min: 1
+          max: 65535
+      - name: DEBUG_ALL
+        label: Verbose Provisioner Debug
+        tooltip: Enable verbose output for all Ansible provisioning tasks
+        type: checkbox
+        group: debug
+        default: true
+  presentation: {}
+  roles:
+    - name: antivirus
+      label: Antivirus
+      description: Installs the Sophos or ClamAV antivirus agent on the guest
+    - name: bginfo
+      label: BGInfo
+      description: Installs the BGInfo desktop system information overlay and starts it at logon
+      depends_on:
+        - chocolatey
+    - name: chocolatey
+      label: Chocolatey
+      description: Installs the Chocolatey package manager and adds it to the system PATH
+    - name: power_management
+      label: Power Management
+      description: Disables hibernation and screen timeouts and selects the high performance power plan
+    - name: remote_access
+      label: Remote Access
+      description: Enables Remote Desktop and installs the OpenSSH server and client features
+    - name: sysmon
+      label: Sysmon
+      description: Installs the Sysinternals Sysmon service with a downloaded configuration
+    - name: telegraf
+      label: Telegraf
+      description: Installs and configures the Telegraf metrics agent
+    - name: windows_explorer
+      label: Windows Explorer
+      description: Shows hidden and system files in Windows Explorer
+    - name: windows_privacy
+      label: Windows Privacy
+      description: Disables telemetry, Cortana, consumer features and other data collection
+    - name: windows_ssh
+      label: Windows SSH
+      description: Sets the OpenSSH default shell and installs the administrators authorized key
+    - name: winlogbeat
+      label: Winlogbeat
+      description: Installs the Winlogbeat service that ships Windows event logs
+    - name: lockdown
+      label: Lockdown
+      description: >-
+        Hardens the guest at the end of provisioning — rotates credentials and
+        applies the configured user password
