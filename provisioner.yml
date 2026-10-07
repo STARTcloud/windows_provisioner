@@ -1,9 +1,9 @@
 name: windows_provisioner
-version: 0.1.23
+version: 0.2.0
 label: Windows Provisioner
 description: >-
-  Provisions a Windows Server guest from a STARTcloud Windows box, prepared
-  with the startcloud_roles Windows roles and the optional HCL Notes client
+  Provisions a Windows Server guest from a STARTcloud Windows box, prepared with
+  the startcloud_roles Windows roles and the optional HCL Notes client
 author: STARTcloud
 icon: https://startcloud.com/brand-assets/startcloud.svg
 homepage: https://startcloud.com/
@@ -96,7 +96,9 @@ metadata:
       description: Installs the Sophos or ClamAV antivirus agent on the guest
     - name: bginfo
       label: BGInfo
-      description: Installs the BGInfo desktop system information overlay and starts it at logon
+      description: >-
+        Installs the BGInfo desktop system information overlay and starts it at
+        logon
       depends_on:
         - chocolatey
     - name: chocolatey
@@ -104,10 +106,14 @@ metadata:
       description: Installs the Chocolatey package manager and adds it to the system PATH
     - name: power_management
       label: Power Management
-      description: Disables hibernation and screen timeouts and selects the high performance power plan
+      description: >-
+        Disables hibernation and screen timeouts and selects the high
+        performance power plan
     - name: remote_access
       label: Remote Access
-      description: Enables Remote Desktop and installs the OpenSSH server and client features
+      description: >-
+        Enables Remote Desktop and installs the OpenSSH server and client
+        features
     - name: sysmon
       label: Sysmon
       description: Installs the Sysinternals Sysmon service with a downloaded configuration
@@ -122,7 +128,9 @@ metadata:
       description: Disables telemetry, Cortana, consumer features and other data collection
     - name: windows_ssh
       label: Windows SSH
-      description: Sets the OpenSSH default shell and installs the administrators authorized key
+      description: >-
+        Sets the OpenSSH default shell and installs the administrators
+        authorized key
     - name: winlogbeat
       label: Winlogbeat
       description: Installs the Winlogbeat service that ships Windows event logs
