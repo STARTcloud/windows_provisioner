@@ -287,7 +287,7 @@ hosts:
                 remote_collections: false
                 collections:
                   - startcloud.startcloud_roles
-                  - startcloud.hcl_roles
+#                  - startcloud.hcl_roles
 
     folders:
       -
@@ -387,6 +387,7 @@ hosts:
       - name: startcloud.startcloud_roles.winlogbeat
         vars:
           run_tasks: {{ winlogbeat | default(false) }}
+#      - name: startcloud.hcl_roles.domino_notes_install
       - name: startcloud.startcloud_roles.lockdown
         vars:
           run_tasks: {{ lockdown | default(true) }}

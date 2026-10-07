@@ -126,9 +126,6 @@ metadata:
     - name: winlogbeat
       label: Winlogbeat
       description: Installs the Winlogbeat service that ships Windows event logs
-    - name: domino_notes_install
-      label: HCL Notes Client
-      description: Installs the HCL Notes client, optional fixpack and hotfix, and the MarvelClient add-in from the configured installers
     - name: lockdown
       label: Lockdown
       description: >-
