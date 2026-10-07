@@ -3,7 +3,7 @@ version: 0.1.23
 label: Windows Provisioner
 description: >-
   Provisions a Windows Server guest from a STARTcloud Windows box, prepared
-  with the startcloud_roles Windows roles
+  with the startcloud_roles Windows roles and the optional HCL Notes client
 author: STARTcloud
 icon: https://startcloud.com/brand-assets/startcloud.svg
 homepage: https://startcloud.com/
@@ -126,6 +126,9 @@ metadata:
     - name: winlogbeat
       label: Winlogbeat
       description: Installs the Winlogbeat service that ships Windows event logs
+    - name: domino_notes_install
+      label: HCL Notes Client
+      description: Installs the HCL Notes client, optional fixpack and hotfix, and the MarvelClient add-in from the configured installers
     - name: lockdown
       label: Lockdown
       description: >-

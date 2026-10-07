@@ -28,7 +28,7 @@ Windows Provisioner is a provisioner package that provisions a Windows Server gu
 ## Key Features
 
 - **Role Management**: Offers a comprehensive set of Ansible roles for various aspects of VM preparation and configuration.
-- **Technology Installation**: Automates the installation of services such as Chocolatey, OpenSSH, Sysmon, Winlogbeat and Telegraf from the startcloud_roles collection, simplifying the deployment process.
+- **Technology Installation**: Automates the installation of services such as Chocolatey, OpenSSH, Sysmon, Winlogbeat and Telegraf from the startcloud_roles collection and the HCL Notes client from the hcl_roles collection, simplifying the deployment process.
 - **Service Configuration**: Simplifies the setup of necessary services on VMs, streamlining the deployment process.
 - **Dependency Installation**: Handles the installation of required dependencies, reducing manual setup efforts.
 

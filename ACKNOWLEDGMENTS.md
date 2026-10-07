@@ -25,7 +25,7 @@ Windows Provisioner is built on excellent open-source projects. We're grateful t
 
 ## Ansible collections
 
-- **startcloud_roles** — base VM preparation and services ([STARTcloud/startcloud_roles](https://github.com/STARTcloud/startcloud_roles))
+- **startcloud_roles** — base VM preparation and the Windows roles this package exposes ([STARTcloud/startcloud_roles](https://github.com/STARTcloud/startcloud_roles))
 - **hcl_roles** — HCL technology installers, including the Notes client ([STARTcloud/hcl_roles](https://github.com/STARTcloud/hcl_roles))
 
 ## Vagrant plugins
